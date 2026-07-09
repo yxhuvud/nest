@@ -1,0 +1,9 @@
+name: nest
+version: 0.1.0
+
+authors:
+  - Linus Sellberg <sellberg@gmail.com>
+
+crystal: '>= 1.20.3'
+
+license: MIT
