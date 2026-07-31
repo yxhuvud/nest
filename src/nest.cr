@@ -1,9 +1,23 @@
 require "./nest/pool"
+require "./nest/strategy"
 
 module Nest
   VERSION = "0.1.0"
 
-  def self.span(execution_context = Fiber::ExecutionContext.current, &spawner_block : Pool ->)
-    Pool.open(execution_context, &spawner_block)
+  def self.each_span(execution_context = Fiber::ExecutionContext.current,
+                     bubble_exceptions : Bool = true,
+                     &spawner_block : Pool(Nil, Strategy::Each) ->)
+    strategy = Strategy::Each.new(bubble_exceptions)
+    Pool(Nil, Strategy::Each).open(strategy, execution_context, &spawner_block)
+  end
+
+  # Note: Order is not guaranteed!
+  def self.map_span(type : T.class,
+                    execution_context = Fiber::ExecutionContext.current,
+                    bubble_exceptions : Bool = true,
+                    &spawner_block : Pool(T, Strategy::Map(T)) ->) forall T
+    strategy = Strategy::Map(T).new(bubble_exceptions)
+    Pool(T, Strategy::Map(T)).open(strategy, execution_context, &spawner_block)
+    strategy.results
   end
 end

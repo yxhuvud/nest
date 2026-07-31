@@ -1,12 +1,12 @@
 require "wait_group"
 
 module Nest
-  class Pool
+  class Pool(T, S)
     @exception : Exception? = nil
     @execution_context : Fiber::ExecutionContext
 
-    def self.open(execution_context = Fiber::ExecutionContext.current, &spawner_block : Pool ->)
-      pool = Pool.new(execution_context)
+    def self.open(strategy : Strategy, execution_context = Fiber::ExecutionContext.current, &spawner_block : Pool(T, S) ->) forall S
+      pool = Pool(T, S).new(execution_context, strategy)
       begin
         spawner_block.call(pool)
       rescue ex : Exception
@@ -22,12 +22,12 @@ module Nest
       end
     end
 
-    def initialize(@execution_context)
+    def initialize(@execution_context, @strategy : S)
       @wait_group = WaitGroup.new
       @mutex = Mutex.new
     end
 
-    getter :execution_context, :wait_group, :mutex
+    getter :execution_context, :wait_group, :mutex, :strategy
 
     protected def exception
       mutex.synchronize { @exception }
@@ -39,17 +39,12 @@ module Nest
       end
     end
 
-    def spawn(&block)
+    def spawn(&block : -> T)
       wait_group.add(1)
 
       execution_context.spawn do
-        begin
-          block.call
-        rescue ex : Exception
-          report_exception(ex)
-        ensure
-          wait_group.done
-        end
+        strategy.execute(self) { block.call }
+        wait_group.done
       end
     end
 
