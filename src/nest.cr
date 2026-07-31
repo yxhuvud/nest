@@ -11,12 +11,13 @@ module Nest
     Pool(Nil, Strategy::Each).open(strategy, execution_context, &spawner_block)
   end
 
-  # Note: Order is not guaranteed!
+  # Note: Order of results is not guaranteed!
   def self.map_span(type : T.class,
                     execution_context = Fiber::ExecutionContext.current,
+                    capacity : Int32 = 64,
                     bubble_exceptions : Bool = true,
                     &spawner_block : Pool(T, Strategy::Map(T)) ->) forall T
-    strategy = Strategy::Map(T).new(bubble_exceptions)
+    strategy = Strategy::Map(T).new(bubble_exceptions, capacity)
     Pool(T, Strategy::Map(T)).open(strategy, execution_context, &spawner_block)
     strategy.results
   end

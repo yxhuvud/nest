@@ -139,5 +139,20 @@ describe Nest do
       # The span should exit cleanly, returning only the value from the successful fiber
       results.should eq([200])
     end
+
+    it "uses the passed in capacity for the result array" do
+      results = Nest.map_span(Int32, capacity: 2) do |pool|
+        pool.spawn do
+          10
+        end
+
+        pool.spawn do
+          20
+        end
+      end
+
+      results.size.should eq(2)
+      results.@capacity.should eq(2)
+    end
   end
 end

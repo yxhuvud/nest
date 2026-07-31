@@ -5,8 +5,8 @@ module Nest
     class Map(T)
       include Strategy
 
-      def initialize(@bubble_exceptions : Bool = true)
-        @results = [] of T
+      def initialize(@bubble_exceptions : Bool = true, capacity : Int32 = 64)
+        @results = Array(T).new(capacity)
         @mutex = Mutex.new
       end
 
