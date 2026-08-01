@@ -10,8 +10,11 @@ describe Nest::Semaphore do
       end
       x += 1
     end
+    sem.acquire do
+      x += 1
+    end
 
-    x.should eq(2)
+    x.should eq(3)
   end
 
   it "blocks when at capacity" do

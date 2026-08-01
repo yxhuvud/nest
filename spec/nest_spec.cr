@@ -85,6 +85,31 @@ describe Nest do
       actual_context_inside_fiber.should eq(custom_context)
       actual_context_inside_fiber.should_not eq(Fiber::ExecutionContext.current)
     end
+
+    it "respects max concurrency" do
+      execution_context = Fiber::ExecutionContext::Parallel.new("threads", 8)
+      count = 10
+      max_concurrency = 3
+      run = 0
+      currently_running = 0
+      max_running = 0
+
+      Nest.each_span(execution_context, max_concurrency: max_concurrency) do |pool|
+        count.times do
+          pool.spawn do
+            currently_running += 1
+            max_running = {currently_running, max_running}.max
+            sleep 5.millisecond
+            run += 1
+            currently_running -= 1
+          end
+        end
+      end
+
+      run.should eq(count)
+      currently_running.should eq(0)
+      max_running.should eq(3)
+    end
   end
 
   describe "Nest.map_span" do

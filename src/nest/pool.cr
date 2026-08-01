@@ -7,8 +7,11 @@ module Nest
     @execution_context : Fiber::ExecutionContext
     @backpressure_semaphore : Semaphore?
 
-    def self.open(strategy : Strategy, execution_context = Fiber::ExecutionContext.current, &spawner_block : Pool(T, S) ->) forall S
-      pool = Pool(T, S).new(execution_context, strategy)
+    def self.open(strategy : Strategy,
+                  execution_context = Fiber::ExecutionContext.current,
+                  max_concurrency : Int32? = nil,
+                  &spawner_block : Pool(T, S) ->) forall S
+      pool = Pool(T, S).new(execution_context, strategy, max_concurrency)
       begin
         spawner_block.call(pool)
       rescue ex : Exception
@@ -24,7 +27,7 @@ module Nest
       end
     end
 
-    def initialize(@execution_context, @strategy : S, max_concurrency : Int? = nil)
+    def initialize(@execution_context, @strategy : S, max_concurrency : Int32? = nil)
       @wait_group = WaitGroup.new
       @mutex = Mutex.new
       if max_concurrency
@@ -45,19 +48,19 @@ module Nest
     end
 
     def spawn(&block : -> T)
-      if backpressure = @backpressure_semaphore
-        backpressure.acquire { internal_spawn(block) }
-      else
-        internal_spawn(block)
-      end
-    end
-
-    protected def internal_spawn(block : -> T)
+      when_backpressure &.wait
       wait_group.add(1)
 
       execution_context.spawn do
         strategy.execute(self) { block.call }
         wait_group.done
+        when_backpressure &.signal
+      end
+    end
+
+    private def when_backpressure(&)
+      if backpressure = @backpressure_semaphore
+        yield backpressure
       end
     end
 
