@@ -112,6 +112,10 @@ Nest.each_span do |pool|
 end
 ```
 
+Do note that stacktraces are stiched together so that it is possible
+to follow how you got to it. Fiber stack traces can be a bit hard to
+identify otherwise.
+
 If independent failures are acceptable, exception bubbling can be disabled:
 
 ```crystal

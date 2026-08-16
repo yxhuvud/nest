@@ -21,9 +21,20 @@ module Nest
       ensure
         pool.wait_all
         if ex = pool.exception
-          # TODO: Stitch exception backtrace
+          stitch_backtrace(ex)
           raise ex
         end
+      end
+    end
+
+    private def self.stitch_backtrace(ex : Exception)
+      existing = ex.callstack
+      current = Exception::CallStack.new
+
+      if existing
+        existing.@callstack.concat(current.@callstack)
+      else
+        ex.callstack = current
       end
     end
 
